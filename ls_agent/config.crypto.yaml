@@ -1,0 +1,84 @@
+# ---------------------------------------------------------------
+# Crypto - top 200 coins by market cap (those with a Binance USDT pair, stablecoins and
+# wrapped/staked tokens excluded), hourly bars, 24/7.
+# Data: Binance public market-data API (no key). Universe: CoinGecko (no key, rate limited).
+# Weights are a starting guess, NOT tuned. No news sentiment for crypto (technical factors only).
+# "Short" here means you would need a perpetual future or margin; spot cannot short.
+# ---------------------------------------------------------------
+strategy_version: "c1.0"
+
+universe: []                # filled at runtime from universe_source
+universe_source:
+  type: coingecko_top
+  n: 200
+benchmark: BTCUSDT          # also scored as a coin; drives the risk_on/risk_off regime
+volatility_index: null      # no VIX equivalent wired in
+
+data:
+  provider: binance         # binance | synthetic_crypto
+  interval: 1h
+  live_lookback_days: 60    # 1440 bars, enough for EMA200 / ADX / Ichimoku
+  backtest_lookback_days: 180
+
+schedule:
+  timezone: UTC
+  hourly: true              # every hour, 24/7, weekends included
+  minute: 5                 # a few minutes after the hourly bar closes
+
+llm:
+  enabled: false            # crypto news sentiment is not wired in
+  model: claude-haiku-4-5-20251001
+  max_items_per_ticker: 8
+  news_max_age_hours: 24
+
+social:
+  x_enabled: false
+  x_max_posts_per_ticker: 20
+
+weights:
+  trend: 0.18
+  momentum: 0.15
+  rel_strength: 0.14
+  volume: 0.05
+  trend_ext: 0.13
+  momentum_ext: 0.09
+  breakout: 0.08
+  flow: 0.11
+  reversion: 0.07
+
+gate:
+  min_abs_score: 0.30
+  min_agreeing_factors: 4
+  factor_agree_min: 0.10
+  max_rsi_long: 78
+  min_rsi_short: 22
+  min_dollar_volume: 200000   # avg hourly $ volume; filters dead alt-coins
+  max_picks_per_side: 3
+  regime_penalty: 1.5
+  vix_risk_off: 28            # unused without a volatility index
+  earnings_blackout_days: 0
+  event_blackout_hours: 2
+  events_et: []               # add FOMC/CPI times if you want crypto to sit those out too
+
+evaluation:
+  horizons_bars: [1, 6, 24]
+  primary_horizon_bars: 6
+  cost_bps_round_trip: 20     # taker fees + slippage on alts + perp funding, roughly
+
+verify:
+  horizon_bars: 6
+  min_outcomes_report: 20
+  min_outcomes_tuning: 100
+  t_threshold: 2.0
+  daily_postmortem: true
+
+reliability:
+  min_picks: 300
+  min_weeks: 8
+  min_hit_rate: 0.53
+  min_edge_bps: 5
+  max_drawdown: 0.15
+
+paths:
+  db: data/crypto.sqlite
+  out_dir: out_crypto

@@ -1,0 +1,16 @@
+[Unit]
+Description=LS Agent - crypto top-200 hourly loop
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=agent
+WorkingDirectory=/home/agent/ls_agent
+EnvironmentFile=/home/agent/.config/ls_agent.env
+ExecStart=/home/agent/ls_agent/venv/bin/python main.py --config config.crypto.yaml loop
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target

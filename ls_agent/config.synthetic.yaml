@@ -1,0 +1,77 @@
+# Offline dry run for US stocks: fake prices, no network. Uses the v2 factor set.
+strategy_version: "v2.0-synthetic"
+
+universe: [AAPL, MSFT, NVDA, AMZN, GOOGL, META, TSLA, AVGO, AMD, NFLX,
+           COST, ADBE, CRM, ORCL, INTC, QCOM, MU, PLTR, UBER, SHOP,
+           JPM, BAC, XOM, CVX, LLY, UNH, WMT, KO, DIS, BA]
+benchmark: SPY
+volatility_index: "^VIX"
+
+data:
+  provider: synthetic
+  interval: 1h
+  live_lookback_days: 60
+  backtest_lookback_days: 720
+
+schedule:
+  timezone: America/New_York
+  run_times: ["10:35", "11:35", "12:35", "13:35", "14:35", "15:35", "16:05"]
+  weekdays_only: true
+
+llm:
+  enabled: false
+  model: claude-haiku-4-5-20251001
+  max_items_per_ticker: 8
+  news_max_age_hours: 24
+
+social:
+  x_enabled: false
+  x_max_posts_per_ticker: 20
+
+weights:
+  trend: 0.16
+  momentum: 0.14
+  rel_strength: 0.12
+  volume: 0.05
+  trend_ext: 0.12
+  momentum_ext: 0.08
+  breakout: 0.07
+  flow: 0.10
+  reversion: 0.06
+
+gate:
+  min_abs_score: 0.30
+  min_agreeing_factors: 4
+  factor_agree_min: 0.10
+  max_rsi_long: 75
+  min_rsi_short: 25
+  min_dollar_volume: 50000000
+  max_picks_per_side: 3
+  regime_penalty: 1.5
+  vix_risk_off: 28
+  earnings_blackout_days: 2
+  event_blackout_hours: 2
+  events_et: []
+
+evaluation:
+  horizons_bars: [1, 7, 35]
+  primary_horizon_bars: 7
+  cost_bps_round_trip: 10
+
+verify:
+  horizon_bars: 6
+  min_outcomes_report: 20
+  min_outcomes_tuning: 100
+  t_threshold: 2.0
+  daily_postmortem: true
+
+reliability:
+  min_picks: 300
+  min_weeks: 8
+  min_hit_rate: 0.53
+  min_edge_bps: 5
+  max_drawdown: 0.15
+
+paths:
+  db: data/synthetic.sqlite
+  out_dir: out_synthetic

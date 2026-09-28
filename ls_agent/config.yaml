@@ -1,0 +1,83 @@
+# ---------------------------------------------------------------
+# US stocks - BASELINE (v1.0): the original 4 technical factors + sentiment.
+# Keep this file unchanged as your control group; try new ideas in config.v2.yaml.
+# Bump strategy_version every time you change weights or gate rules.
+# Every run is logged with this version, so evaluate.py can compare them.
+# ---------------------------------------------------------------
+strategy_version: "v1.0"
+
+universe: [AAPL, MSFT, NVDA, AMZN, GOOGL, META, TSLA, AVGO, AMD, NFLX,
+           COST, ADBE, CRM, ORCL, INTC, QCOM, MU, PLTR, UBER, SHOP,
+           JPM, BAC, XOM, CVX, LLY, UNH, WMT, KO, DIS, BA]
+benchmark: SPY
+volatility_index: "^VIX"
+
+data:
+  provider: yfinance        # yfinance | synthetic (offline dry runs / tests)
+  interval: 1h
+  live_lookback_days: 60    # enough history for EMA50 / RSI on hourly bars
+  backtest_lookback_days: 720  # yfinance keeps ~730 days of hourly bars
+
+schedule:
+  timezone: America/New_York
+  # Hourly bars start at :30 and close at :30. Run a few minutes after close.
+  run_times: ["10:35", "11:35", "12:35", "13:35", "14:35", "15:35", "16:05"]
+  weekdays_only: true       # market holidays are not handled; runs just log stale data
+
+llm:
+  enabled: true             # needs ANTHROPIC_API_KEY in the environment
+  model: claude-haiku-4-5-20251001
+  max_items_per_ticker: 8
+  news_max_age_hours: 24
+
+social:
+  x_enabled: false          # needs X_BEARER_TOKEN; recent-search is a paid X API tier
+  x_max_posts_per_ticker: 20
+
+# Factor weights (renormalised automatically when a factor is missing).
+# Factors not listed here are computed but ignored, so they cannot change decisions.
+weights:
+  trend: 0.25
+  momentum: 0.20
+  rel_strength: 0.20
+  volume: 0.10
+  sentiment: 0.25
+
+gate:
+  min_abs_score: 0.35         # composite score threshold (range -1..1)
+  min_agreeing_factors: 3     # factors pointing the same way as the composite
+  factor_agree_min: 0.10      # a factor "agrees" only if |value| >= this
+  max_rsi_long: 75            # don't chase overbought longs
+  min_rsi_short: 25           # don't short oversold names
+  min_dollar_volume: 50000000 # avg hourly $ volume, liquidity filter
+  max_picks_per_side: 3
+  regime_penalty: 1.5         # threshold multiplier for trading against the regime
+  vix_risk_off: 28
+  earnings_blackout_days: 2
+  event_blackout_hours: 2     # force NEUTRAL near events listed below
+  events_et: []               # e.g. ["2026-10-29 14:00", "2026-11-13 08:30"]  (FOMC, CPI...)
+
+evaluation:
+  horizons_bars: [1, 7, 35]   # 1h, ~1 trading day, ~1 week
+  primary_horizon_bars: 7
+  cost_bps_round_trip: 10     # fees + slippage (+ add borrow cost for shorts)
+
+# Outcome check: N bars after a pick, did it work? If not, why? (python main.py verify / improve)
+verify:
+  horizon_bars: 6             # 6 hourly bars ~ 6 hours
+  min_outcomes_report: 20     # below this the post-mortem refuses to draw conclusions
+  min_outcomes_tuning: 100    # below this it will not suggest weight changes
+  t_threshold: 2.0            # |t| a factor needs before a weight change is suggested
+  daily_postmortem: true      # loop writes out/postmortem.md once a day
+
+# The bar the agent must clear before any real money
+reliability:
+  min_picks: 300
+  min_weeks: 8
+  min_hit_rate: 0.53
+  min_edge_bps: 5             # mean excess return vs universe, net of costs
+  max_drawdown: 0.15
+
+paths:
+  db: data/agent.sqlite
+  out_dir: out

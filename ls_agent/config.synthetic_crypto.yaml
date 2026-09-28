@@ -1,0 +1,78 @@
+# Offline dry run for crypto: 200 fake coins, 24/7 fake prices, no network.
+strategy_version: "c1.0-synthetic"
+
+universe: []
+universe_source:
+  type: synthetic_crypto
+  n: 200
+benchmark: BTCUSDT
+volatility_index: null
+
+data:
+  provider: synthetic_crypto
+  interval: 1h
+  live_lookback_days: 60
+  backtest_lookback_days: 120
+
+schedule:
+  timezone: UTC
+  hourly: true
+  minute: 5
+
+llm:
+  enabled: false
+  model: claude-haiku-4-5-20251001
+  max_items_per_ticker: 8
+  news_max_age_hours: 24
+
+social:
+  x_enabled: false
+  x_max_posts_per_ticker: 20
+
+weights:
+  trend: 0.18
+  momentum: 0.15
+  rel_strength: 0.14
+  volume: 0.05
+  trend_ext: 0.13
+  momentum_ext: 0.09
+  breakout: 0.08
+  flow: 0.11
+  reversion: 0.07
+
+gate:
+  min_abs_score: 0.30
+  min_agreeing_factors: 4
+  factor_agree_min: 0.10
+  max_rsi_long: 78
+  min_rsi_short: 22
+  min_dollar_volume: 200000
+  max_picks_per_side: 3
+  regime_penalty: 1.5
+  vix_risk_off: 28
+  earnings_blackout_days: 0
+  event_blackout_hours: 2
+  events_et: []
+
+evaluation:
+  horizons_bars: [1, 6, 24]
+  primary_horizon_bars: 6
+  cost_bps_round_trip: 20
+
+verify:
+  horizon_bars: 6
+  min_outcomes_report: 20
+  min_outcomes_tuning: 100
+  t_threshold: 2.0
+  daily_postmortem: true
+
+reliability:
+  min_picks: 300
+  min_weeks: 8
+  min_hit_rate: 0.53
+  min_edge_bps: 5
+  max_drawdown: 0.15
+
+paths:
+  db: data/synthetic_crypto.sqlite
+  out_dir: out_synthetic_crypto
