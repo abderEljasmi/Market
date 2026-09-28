@@ -156,9 +156,11 @@ def test_top_crypto_filters_stablecoins_and_untradable(monkeypatch):
              {"id": "tether", "symbol": "usdt", "name": "Tether"},
              {"id": "wrapped-bitcoin", "symbol": "wbtc", "name": "Wrapped Bitcoin"},
              {"id": "obscure", "symbol": "obs", "name": "Obscure"},
+             {"id": "pax-gold", "symbol": "paxg", "name": "PAX Gold"},
              {"id": "ethereum", "symbol": "eth", "name": "Ethereum"}]
     monkeypatch.setattr(universe, "_coingecko_top", lambda n: coins)
-    monkeypatch.setattr(universe, "_binance_usdt_symbols", lambda: {"BTCUSDT", "ETHUSDT", "USDCUSDT", "WBTCUSDT"})
+    monkeypatch.setattr(universe, "_binance_usdt_symbols",
+                        lambda: {"BTCUSDT", "ETHUSDT", "USDCUSDT", "WBTCUSDT", "PAXGUSDT"})
     assert universe.top_crypto(5) == ["BTCUSDT", "ETHUSDT"]
 
 
@@ -186,6 +188,7 @@ def test_verify_and_postmortem_end_to_end(crypto_cfg, capsys):
     end = pd.Timestamp("2026-09-25 12:00", tz=TZ)
     payload = run_once(crypto_cfg, now=end - pd.Timedelta(hours=40))
     assert payload and (payload["longs"] or payload["shorts"])
+    assert all(p["price"] > 0 for p in payload["longs"] + payload["shorts"])         # entry price is reported
     con = store.connect(crypto_cfg["paths"]["db"])
     assert con.execute("SELECT COUNT(*) FROM pick_features").fetchone()[0] > 0       # indicator snapshot stored
 

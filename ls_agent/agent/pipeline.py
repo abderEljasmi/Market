@@ -78,7 +78,7 @@ def format_side(name: str, picks: pd.DataFrame, table: pd.DataFrame, candidate: 
         lines.append(f"  NEUTRAL - no conviction (closest: {t} {near.score.iloc[0]:+.2f}, blocked by: {near.blocked_by.iloc[0]})")
         return lines
     for i, (t, r) in enumerate(picks.iterrows(), 1):
-        lines.append(f"  {i}. {t:<10} conviction {r.conviction:>3}  score {r.score:+.2f}  [{r.why}]")
+        lines.append(f"  {i}. {t:<10} entry {r.price:<11.6g} conviction {r.conviction:>3}  score {r.score:+.2f}  [{r.why}]")
     return lines
 
 
@@ -130,7 +130,11 @@ def run_once(cfg: dict, now: pd.Timestamp | None = None) -> dict | None:
         "status": "ok", "thresholds": decision["thresholds"],
     }
     factor_rows = pd.DataFrame(factors).round(3).to_dict(orient="index")
-    store.log_run(con, run, decision["table"], panels["close"].iloc[-1], factor_rows)
+    closes = panels["close"].iloc[-1]
+    store.log_run(con, run, decision["table"], closes, factor_rows)
+    # entry reference = close of the last completed bar (what the 6-bar check measures from)
+    for side in ("longs", "shorts"):
+        decision[side] = decision[side].assign(price=closes.reindex(decision[side].index))
     picked = list(decision["longs"].index) + list(decision["shorts"].index)
     store.log_features(con, run["run_id"], {t: ind.snapshot(panels, t) for t in picked})
 
@@ -141,7 +145,8 @@ def run_once(cfg: dict, now: pd.Timestamp | None = None) -> dict | None:
     lines = [header]
     lines += format_side("LONG", decision["longs"], decision["table"], "LONG")
     lines += format_side("SHORT", decision["shorts"], decision["table"], "SHORT")
-    lines.append(f"Each pick is re-checked after {cfg['verify']['horizon_bars']} bars. "
+    lines.append(f"Entry = close of the {bar_ts:%H:%M} bar (the run happens a few minutes later, so live fills differ). "
+                 f"Each pick is re-checked after {cfg['verify']['horizon_bars']} bars. "
                  "Research output, not financial advice.")
     report = "\n".join(lines)
     print(report)

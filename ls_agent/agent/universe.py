@@ -22,7 +22,8 @@ log = logging.getLogger(__name__)
 
 STABLES = {"usdt", "usdc", "dai", "fdusd", "usde", "tusd", "usdd", "pyusd", "usds", "usdp", "gusd", "busd",
            "frax", "lusd", "susd", "eurc", "eurt", "usdy", "usd0", "usdb", "usd1", "ustc", "rlusd", "bfusd"}
-WRAPPED_HINTS = ("wrapped", "staked", "bridged", "restaked", "liquid staking", "lido", "coinbase wrapped")
+STABLES |= {"xaut", "paxg", "kag", "kau"}      # gold/silver-backed tokens: a commodity, not a coin
+WRAPPED_HINTS =("wrapped", "staked", "bridged", "restaked", "liquid staking", "lido", "coinbase wrapped")
 
 
 def _excluded(coin: dict) -> bool:
